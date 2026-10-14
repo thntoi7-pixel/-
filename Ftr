@@ -1,0 +1,165 @@
+-- ตรวจสอบว่ารันใน Roblox หรือไม่
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+-- สร้าง ScreenGui หลัก
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local Title = Instance.new("TextLabel")
+
+-- ตั้งค่า ScreenGui
+ScreenGui.Name = "DeltaCheatMenu"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- ตั้งค่ากรอบเมนูหลัก
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 250, 0, 280)
+MainFrame.Active = true
+MainFrame.Draggable = true -- ทำให้ลากเลื่อนหน้าต่างได้
+
+UICorner.Parent = MainFrame
+
+-- หัวข้อเมนู
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.Size = UDim2.new(0, 250, 0, 40)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "Delta Custom Menu"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.Parent = Title
+
+-- ฟังก์ชันสร้างปุ่มเปิด-ปิด (Toggle Button)
+local function createToggle(name, yPos, callback)
+    local btn = Instance.new("TextButton")
+    btn.Parent = MainFrame
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.Position = UDim2.new(0, 25, 0, yPos)
+    btn.Size = UDim2.new(0, 200, 0, 35)
+    btn.Font = Enum.Font.Gotham
+    btn.Text = name .. ": OFF"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 14
+    
+    local corner = Instance.new("UICorner")
+    corner.Parent = btn
+    
+    local enabled = false
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        if enabled then
+            btn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+            btn.Text = name .. ": ON"
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            btn.Text = name .. ": OFF"
+        end
+        callback(enabled)
+    end)
+end
+
+-- ฟังก์ชันสร้างตัวปรับความเร็ว (Speed Slider/Box)
+local function createSpeedControl(yPos)
+    local container = Instance.new("Frame")
+    container.Parent = MainFrame
+    container.BackgroundTransparency = 1
+    container.Position = UDim2.new(0, 25, 0, yPos)
+    container.Size = UDim2.new(0, 200, 0, 50)
+    
+    local label = Instance.new("TextLabel")
+    label.Parent = container
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Font = Enum.Font.Gotham
+    label.Text = "ความเร็ว (1-100): 16"
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 14
+    
+    local textBox = Instance.new("TextBox")
+    textBox.Parent = container
+    textBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    textBox.Position = UDim2.new(0, 0, 0, 22)
+    textBox.Size = UDim2.new(1, 0, 0, 25)
+    textBox.Font = Enum.Font.Gotham
+    textBox.Text = "16"
+    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textBox.TextSize = 14
+    
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.Parent = textBox
+    
+    textBox.FocusLost:Connect(function(enterPressed)
+        local num = tonumber(textBox.Text)
+        if num then
+            if num < 1 then num = 1 end
+            if num > 100 then num = 100 end
+            textBox.Text = tostring(num)
+            label.Text = "ความเร็ว (1-100): " .. num
+            
+            local player = game.Players.LocalPlayer
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                player.Character.Humanoid.WalkSpeed = num
+            end
+        else
+            textBox.Text = "16"
+        end
+    end)
+end
+
+-- 1. ฟังก์ชันวิ่งเร็ว (เชื่อมกับการปรับความเร็ว)
+local speedEnabled = false
+createToggle("วิ่งเร็ว", 55, function(state)
+    speedEnabled = state
+    local player = game.Players.LocalPlayer
+    local function updateSpeed()
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            local textBox = MainFrame:FindFirstChild("TextBox", true) -- ดึงค่าจากช่องพิมพ์
+            local speed = tonumber(textBox and textBox.Text) or 16
+            player.Character.Humanoid.WalkSpeed = speedEnabled and speed or 16
+        end
+    end
+    updateSpeed()
+end)
+
+createSpeedControl(95);
+
+-- 2. ฟังก์ชันกระโดดไม่จำกัด (Infinite Jump)
+local infJumpEnabled = false
+createToggle("กระโดดไม่จำกัด", 155, function(state)
+    infJumpEnabled = state
+end)
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if infJumpEnabled then
+        local player = game.Players.LocalPlayer
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- 3. ฟังก์ชันเดินทะลุกำแพง (Noclip)
+local noclipEnabled = false
+createToggle("เดินทะลุกำแพง", 205, function(state)
+    noclipEnabled = state
+end)
+
+game:GetService("RunService").Stepped:Connect(function()
+    if noclipEnabled then
+        local player = game.Players.LocalPlayer
+        if player.Character then
+            for _, part in pairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+end)
